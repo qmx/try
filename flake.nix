@@ -43,16 +43,41 @@
             };
 
             config = mkIf cfg.enable {
+              home.packages = [ cfg.package ];
+
               programs.bash.initExtra = mkIf config.programs.bash.enable ''
-                eval "$(${cfg.package}/bin/try init ${cfg.path})"
+                try() {
+                  local out
+                  out=$('${cfg.package}/bin/try' exec --path '${cfg.path}' "$@" 2>/dev/tty)
+                  if [ $? -eq 0 ]; then
+                    eval "$out"
+                  else
+                    echo "$out"
+                  fi
+                }
               '';
 
               programs.zsh.initContent = mkIf config.programs.zsh.enable ''
-                eval "$(${cfg.package}/bin/try init ${cfg.path})"
+                try() {
+                  local out
+                  out=$('${cfg.package}/bin/try' exec --path '${cfg.path}' "$@" 2>/dev/tty)
+                  if [ $? -eq 0 ]; then
+                    eval "$out"
+                  else
+                    echo "$out"
+                  fi
+                }
               '';
 
               programs.fish.shellInit = mkIf config.programs.fish.enable ''
-                eval (${cfg.package}/bin/try init ${cfg.path} | string collect)
+                function try
+                  set -l out ('${cfg.package}/bin/try' exec --path '${cfg.path}' $argv 2>/dev/tty | string collect)
+                  if test $status -eq 0
+                    eval $out
+                  else
+                    echo $out
+                  end
+                end
               '';
             };
           };
@@ -70,6 +95,7 @@
 
           src = inputs.self;
           nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
+          buildInputs = [ ruby ];
 
           installPhase = ''
             mkdir -p $out/bin
