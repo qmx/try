@@ -921,16 +921,16 @@ if __FILE__ == $0
         Default path: {dim}~/src/tries{/fg}
         Current: {dim}#{TrySelector::TRY_PATH}{/fg}
     HELP
-    # Help should not manipulate the screen; print plainly to STDOUT.
-    # Expand tokens to ANSI when TTY, strip when not TTY (unless --no-expand-tokens keeps them)
+    # Print help to STDERR so shell wrapper doesn't capture it for eval.
+    # The wrapper redirects STDERR to /dev/tty, so it displays directly.
     out = UI.expand_tokens(text)
-    # If tokens weren't expanded (no-expand mode), keep them. Otherwise strip if non-tty.
-    if STDOUT.tty? || out.include?('{')
+    # Strip tokens if STDERR is not a TTY (unless tokens weren't expanded)
+    if STDERR.tty? || out.include?('{')
       # TTY or tokens preserved by no-expand mode
     else
       out = text.gsub(/\{.*?\}/, '')
     end
-    STDOUT.print(out)
+    STDERR.print(out)
   end
 
   # Process color-related flags early
