@@ -1167,7 +1167,7 @@ if __FILE__ == $0
       base = resolve_unique_name_with_versioning(tries_path, date_prefix, base)
       full_path = File.join(tries_path, "#{date_prefix}-#{base}")
       # Use worktree if .git exists, otherwise just mkdir
-      if File.directory?(File.join(repo_dir, '.git'))
+      if File.exist?(File.join(repo_dir, '.git'))
         return script_worktree(full_path, repo_dir)
       else
         return script_mkdir_cd(full_path)
@@ -1334,9 +1334,16 @@ if __FILE__ == $0
       emit_script(cmd_clone!(ARGV, tries_path))
     when 'worktree'
       ARGV.shift
-      repo = ARGV.shift
-      repo_dir = repo && repo != 'dir' ? File.expand_path(repo) : Dir.pwd
-      full_path = worktree_path(tries_path, repo_dir, ARGV.join(' '))
+      first_arg = ARGV.shift
+      # If first_arg looks like a path (contains / or is an existing directory), treat as repo
+      if first_arg && (first_arg.include?('/') || File.directory?(File.expand_path(first_arg)))
+        repo_dir = File.expand_path(first_arg)
+        custom_name = ARGV.join(' ')
+      else
+        repo_dir = Dir.pwd
+        custom_name = first_arg  # It's the name, not a path
+      end
+      full_path = worktree_path(tries_path, repo_dir, custom_name)
       emit_script(script_worktree(full_path, repo_dir == Dir.pwd ? nil : repo_dir))
     when 'cd'
       ARGV.shift
@@ -1359,9 +1366,16 @@ if __FILE__ == $0
       end
     end
   when 'worktree'
-    repo = ARGV.shift
-    repo_dir = repo && repo != 'dir' ? File.expand_path(repo) : Dir.pwd
-    full_path = worktree_path(tries_path, repo_dir, ARGV.join(' '))
+    first_arg = ARGV.shift
+    # If first_arg looks like a path (contains / or is an existing directory), treat as repo
+    if first_arg && (first_arg.include?('/') || File.directory?(File.expand_path(first_arg)))
+      repo_dir = File.expand_path(first_arg)
+      custom_name = ARGV.join(' ')
+    else
+      repo_dir = Dir.pwd
+      custom_name = first_arg  # It's the name, not a path
+    end
+    full_path = worktree_path(tries_path, repo_dir, custom_name)
     # Explicit worktree command always emits worktree script
     emit_script(script_worktree(full_path, repo_dir == Dir.pwd ? nil : repo_dir))
     exit 0
